@@ -473,6 +473,126 @@ export default class {
                         return { success: false, error: error instanceof Error ? error : new Error('Failed to rollback ProxmoxVE virtual machine snapshot.', { cause: error }) }
                     }
                 }
+            },
+            Agent: {
+                changePassword: async (
+                    _nodeName: string,
+                    _virtualMachineId: number,
+                    _username: string,
+                    _password: string
+                ): Promise<{ success: true } | { success: false, error?: Error }> => {
+                    try {
+                        if(this._ProxmoxVE == null) return { success: false, error: new Error('ProxmoxVE client is not initialized.') }
+
+                        const _changePasswordResult = await axios.post(`${ this._ProxmoxVE.apiEndpoint }/api2/json/nodes/${ _nodeName }/qemu/${ _virtualMachineId }/agent/set-user-password`, {
+                            username: _username,
+                            password: _password
+                        }, {
+                            headers: {
+                                cookie: `PVEAuthCookie=${ this._ProxmoxVE.ticket }`,
+                                CSRFPreventionToken: this._ProxmoxVE.csrfToken
+                            }
+                        })
+
+                        if(_changePasswordResult.status !== 200) return { success: false, error: new Error('Failed to change ProxmoxVE virtual machine agent password.') }
+
+                        return { success: true }
+                    } catch(error) {
+                        return { success: false, error: error instanceof Error ? error : new Error('Failed to change ProxmoxVE virtual machine agent password.', { cause: error }) }
+                    }
+                },
+                getNetworkInterface: async (
+                    _nodeName: string,
+                    _virtualMachineId: number
+                ): Promise<{ success: true, data: {
+                    [ interfaceName: string ]: {
+                        macAddress: string,
+                        ipAddresses: Array<{ type: 'ipv4' | 'ipv6', address: string, prefix: number }>,
+                        statistics: {
+                            received: {
+                                bytes: number,
+                                packets: number,
+                                errors: number,
+                                dropped: number
+                            },
+                            sent: {
+                                bytes: number,
+                                packets: number,
+                                errors: number,
+                                dropped: number
+                            }
+                        }
+                    }
+                } } | { success: false, error?: Error }> => {
+                    try {
+                        if(this._ProxmoxVE == null) return { success: false, error: new Error('ProxmoxVE client is not initialized.') }
+
+                        const _getNetworkInterfaceResult = await axios.get(`${ this._ProxmoxVE.apiEndpoint }/api2/json/nodes/${ _nodeName }/qemu/${ _virtualMachineId }/agent/network-get-interfaces`, {
+                            headers: {
+                                cookie: `PVEAuthCookie=${ this._ProxmoxVE.ticket }`,
+                                CSRFPreventionToken: this._ProxmoxVE.csrfToken
+                            }
+                        })
+
+                        if(_getNetworkInterfaceResult.status !== 200) return { success: false, error: new Error('Failed to get ProxmoxVE virtual machine network interface.') }
+
+                        return { success: true, data: Object.fromEntries(_getNetworkInterfaceResult.data.map((_interface: any) => [ _interface.name, {
+                            macAddress: _interface['hardware-address'],
+                            ipAddresses: _interface['ip-addresses'].map((_ipAddress: any) => ({
+                                type: _ipAddress['ip-address-type'],
+                                address: _ipAddress['ip-address'],
+                                prefix: _ipAddress['ip-prefix']
+                            })),
+                            statistics: {
+                                received: {
+                                    bytes: _interface['statistics']['rx-bytes'],
+                                    packets: _interface['statistics']['rx-packets'],
+                                    errors: _interface['statistics']['rx-errs'],
+                                    dropped: _interface['statistics']['rx-dropped']
+                                },
+                                sent: {
+                                    bytes: _interface['statistics']['tx-bytes'],
+                                    packets: _interface['statistics']['tx-packets'],
+                                    errors: _interface['statistics']['tx-errs'],
+                                    dropped: _interface['statistics']['tx-dropped']
+                                }
+                            }
+                        } ])) }
+                    } catch(error) {
+                        return { success: false, error: error instanceof Error ? error : new Error('Failed to get ProxmoxVE virtual machine network interface.', { cause: error }) }
+                    }
+                }
+            },
+            Firewall: {
+                addRule: async (
+                    _nodeName: string,
+                    _virtualMachineId: number,
+                    _rule: {
+                        source?: string,
+                        dest?: string,
+                        type: 'in' | 'out' | 'forward' | 'group',
+                        action: 'ACCEPT' | 'DROP' | 'REJECT'
+                    }
+                ): Promise<{ success: true } | { success: false, error?: Error }> => {
+                    try {
+                        if(this._ProxmoxVE == null) return { success: false, error: new Error('ProxmoxVE client is not initialized.') }
+
+                        const _addRuleResult = await axios.post(`${ this._ProxmoxVE.apiEndpoint }/api2/json/nodes/${ _nodeName }/qemu/${ _virtualMachineId }/firewall/rules`, {
+                            ... _rule
+                        }, {
+                            headers: {
+                                cookie: `PVEAuthCookie=${ this._ProxmoxVE.ticket }`,
+                                CSRFPreventionToken: this._ProxmoxVE.csrfToken
+                            }
+                        })
+
+                        if(_addRuleResult.status !== 200) return { success: false, error: new Error('Failed to add ProxmoxVE virtual machine firewall rule.') }
+
+                        return { success: true }
+                    } catch(error) {
+                        return { success: false, error: error instanceof Error ? error : new Error('Failed to add ProxmoxVE virtual machine firewall rule.', { cause: error }) }
+                    }
+                }
             }
         }
     }

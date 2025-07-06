@@ -30,6 +30,9 @@ export class Instance {
     @Column({ type: 'text', nullable: false, comment: 'Operating system' })
     operating_system: string
 
+    @Column({ type: 'text', nullable: true, default: null, comment: 'Password' })
+    password: string | null
+
 
     @Column({ type: 'uuid', array: true, nullable: false, comment: 'User ID' })
     user_id: Array<string & { __brand: 'UUID' }>
@@ -40,6 +43,9 @@ export class Instance {
 
     @Column({ type: 'enum', enum: InstanceStatus, default: InstanceStatus.WAITING_FOR_PAYMENT, comment: 'Instance status' })
     status: InstanceStatus
+
+    @Column({ type: 'text', nullable: true, default: null, comment: 'Failure reason' })
+    failure_reason: string | null
 
 
     @Column({ type: 'jsonb', nullable: false, default: {  }, comment: 'Additional data' })
